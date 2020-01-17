@@ -1,0 +1,53 @@
+#!/usr/bin/env python
+import click
+import os
+from wrapcmd import wrapcmd
+
+class Commands:
+
+    def __init__(self):
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        self._avro_cmd = "java -jar {script_dir}/../avro-tools-1.9.1.jar".format(
+            script_dir=script_dir)
+        self._cmd_session = wrapcmd.CmdSession()
+        self._cmd_session.dry_run = False
+
+    def head(self, input_file:str, n:int, is_pretty:bool):
+        cmd = "{avro} tojson --head {n} {input_file}".format(
+            avro=self._avro_cmd, input_file=input_file, 
+            n=n)
+        if is_pretty:
+            cmd += "|jq ."
+        self._cmd_session.exec(cmd)
+
+    def cat(self, input_file:str, is_pretty:bool):
+        cmd = "{avro} tojson {input_file}".format(
+            avro=self._avro_cmd, input_file=input_file)
+        if is_pretty:
+            cmd += "|jq ."
+        self._cmd_session.exec(cmd)
+
+
+cmds = Commands()
+
+@click.group()
+def avro():
+    pass
+
+@avro.command()
+@click.argument("input_file")
+@click.option("-n", default=10, help="head n lines")
+@click.option("--pretty", is_flag=True, 
+    help="pretty print using jq")
+def head(input_file, n, pretty:bool):
+    cmds.head(input_file, n, pretty)
+
+@avro.command()
+@click.argument("input_file")
+@click.option("--pretty", is_flag=True, 
+    help="pretty print using jq")
+def cat(input_file, pretty:bool):
+    cmds.cat(input_file, pretty)
+
+if __name__ == "__main__":
+    avro()
